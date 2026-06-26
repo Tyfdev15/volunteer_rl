@@ -1,0 +1,11 @@
+# Dependances du serveur de coordination et de l'analyse
+# (cote VOLONTAIRE, seuls numpy et requests sont necessaires)
+
+flask>=3.0          # serveur HTTP de coordination
+numpy>=1.26         # calcul numerique (reseaux en NumPy pur)
+requests>=2.31      # communication volontaire <-> serveur
+matplotlib>=3.7     # figures d'analyse (scripts/analyze.py)
+
+# Aucune dependance lourde (ni TensorFlow ni PyTorch) : c'est volontaire, pour
+# qu'un smartphone (Termux/Pydroid) puisse participer au calcul.
+# Modules standard utilises : threading, zlib, base64, json, socket, csv (inclus avec Python).

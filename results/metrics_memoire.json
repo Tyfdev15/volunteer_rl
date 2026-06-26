@@ -1,0 +1,74 @@
+{
+  "hypotheses_cout": {
+    "prix_electricite_usd_kwh": 0.15,
+    "puissance_smartphone_w": 4.0,
+    "puissance_pc_w": 65.0,
+    "fraction_marginale_volontaire": 0.6,
+    "prix_gpu_cloud_usd_h": 1.2,
+    "puissance_gpu_cloud_w": 300.0,
+    "acceleration_gpu_vs_pc": 25.0,
+    "cout_amorti_serveur_usd_h": 6.0,
+    "puissance_serveur_w": 2000.0,
+    "acceleration_serveur_vs_pc": 60.0,
+    "mix_flotte_smartphone": 0.75,
+    "station_reference_en_pc": 12.0,
+    "entrainement_realiste_heures_pc": 50.0
+  },
+  "qualite": {
+    "precision_finale": 0.9725,
+    "top3_finale": 0.995,
+    "f1_finale": 0.9731394766054586,
+    "tours_initial": 20.0,
+    "tours_final": 7.0425
+  },
+  "plus_value": {
+    "temps_cible_par_K": {
+      "1": 6.241870895028114,
+      "4": 1.5604677237570286,
+      "10": 0.6241870895028114
+    },
+    "acceleration_K_max": 10.0
+  },
+  "echelle": {
+    "pas_pour_cible": 120,
+    "temps_1_appareil_s": 6.241870895028114,
+    "temps_30_appareils_s": 0.20806236316760382
+  },
+  "bande_passante": {
+    "octets_poids_fp32": 180744,
+    "octets_grad_fp16": 83819,
+    "octets_grad_fp16_top25": 36639,
+    "octets_grad_fp16_top10": 15170,
+    "reduction_fp16": 2.156360729667498,
+    "reduction_top10": 11.914568226763349
+  },
+  "heterogeneite": {
+    "contribution": {
+      "windows-pc": 85,
+      "linux-pc": 74,
+      "smartphone-1": 55,
+      "smartphone-2": 50
+    },
+    "reassignations": 0
+  },
+  "tolerance": {
+    "0%": 0.9766666666666667,
+    "20%": 0.97,
+    "40%": 0.9466666666666667,
+    "60%": 0.8833333333333333
+  },
+  "cout": {
+    "heures_pc_demo": 0.0017338530263966985,
+    "heures_pc_modele": 50.0,
+    "cout_usd": {
+      "flotte": 0.086625,
+      "gpu_cloud": 2.4,
+      "serveur": 5.0
+    },
+    "energie_kwh": {
+      "flotte": 0.5775,
+      "gpu_cloud": 0.6,
+      "serveur": 1.6666666666666667
+    }
+  }
+}

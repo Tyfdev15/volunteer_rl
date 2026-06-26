@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calcul volontaire - Tableau de bord</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121922; --panel2:#0e141b; --line:#1e2a36;
+    --ink:#d7e3ee; --dim:#7f93a6; --accent:#37e6a4; --accent2:#4aa8ff;
+    --warn:#ffb454; --bad:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font-family:ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,monospace;}
+  header{padding:16px 22px;border-bottom:1px solid var(--line);
+         display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  h1{font-size:15px;margin:0;letter-spacing:.08em;text-transform:uppercase;color:var(--ink)}
+  .sub{color:var(--dim);font-size:12px;margin-top:3px}
+  .pill{padding:4px 10px;border-radius:20px;font-size:12px;border:1px solid var(--line)}
+  .run{color:var(--accent);border-color:var(--accent)}
+  .done{color:var(--accent2);border-color:var(--accent2)}
+  .wrap{padding:18px 22px;max-width:1200px;margin:0 auto}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .card .k{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+  .card .v{font-size:26px;margin-top:6px;color:var(--ink)}
+  .card .v small{font-size:13px;color:var(--dim)}
+  .row{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+  @media(max-width:840px){.row{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+  .panel h2{font-size:12px;margin:0 0 12px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em}
+  canvas{width:100%;height:240px}
+  .bar{height:10px;background:var(--panel2);border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:normal;font-size:11px;text-transform:uppercase}
+  .dev{display:flex;align-items:center;gap:8px}
+  .ico{width:9px;height:9px;border-radius:50%}
+  .os-android{background:var(--accent)} .os-linux{background:var(--warn)}
+  .os-windows{background:var(--accent2)} .os-other{background:var(--dim)}
+  .muted{color:var(--dim)}
+  .net{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Calcul volontaire &mdash; apprentissage par renforcement pour le diagnostic</h1>
+    <div class="sub" id="jobname">&mdash;</div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+  <button id="btnStart"
+          style="
+            background:var(--accent2);
+            color:white;
+            border:0;
+            border-radius:8px;
+            padding:8px 16px;
+            font-weight:bold;
+            cursor:pointer;
+            font-family:inherit;">
+    ▶ DÉMARRER
+  </button>
+
+  <div class="pill run" id="state">en attente</div>
+</div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+    <div class="card"><div class="k">Epoque</div><div class="v" id="epoch">0<small id="maxep"></small></div></div>
+    <div class="card"><div class="k">Precision</div><div class="v" id="acc">&mdash;</div></div>
+    <div class="card"><div class="k">Top-3</div><div class="v" id="top3">&mdash;</div></div>
+    <div class="card"><div class="k">F1 macro</div><div class="v" id="f1">&mdash;</div></div>
+    <div class="card"><div class="k">Questions / patient</div><div class="v" id="turns">&mdash;</div></div>
+    <div class="card"><div class="k">Epsilon</div><div class="v" id="eps">&mdash;</div></div>
+    <div class="card"><div class="k">Tâches en attente</div><div class="v" id="tasks_pending">&mdash;</div></div>
+    <div class="card"><div class="k">Tâches en cours</div><div class="v" id="tasks_inflight">&mdash;</div></div>
+    <div class="card"><div class="k">Sous-tâches rendues/epoch</div><div class="v" id="tasks_done">&mdash;</div></div>
+    <div class="card"><div class="k">Gradients appliqués total</div><div class="v" id="grads_total">&mdash;</div></div>
+    <div class="card"><div class="k">Volontaires actifs</div><div class="v" id="workers_count">&mdash;</div></div>
+  </div>
+  
+  
+
+  <div class="panel">
+    <h2>Progression de l'epoque courante</h2>
+    <div class="bar"><i id="prog"></i></div>
+    <div class="sub" id="progtxt" style="margin-top:8px">&mdash;</div>
+  </div>
+
+  <div class="row">
+    <div class="panel">
+      <h2>Convergence (precision par epoque)</h2>
+      <canvas id="chart"></canvas>
+    </div>
+    <div class="panel">
+      <h2>Transport par gradients</h2>
+      <div class="net"><span class="muted">Compresse transmis</span><span id="bw_comp">&mdash;</span></div>
+      <div class="net"><span class="muted">Equivalent brut fp32</span><span id="bw_raw">&mdash;</span></div>
+      <div class="net"><span class="muted">Reduction</span><span id="bw_red" style="color:var(--accent)">&mdash;</span></div>
+      <div class="net"><span class="muted">Gradients appliques</span><span id="g_ok">&mdash;</span></div>
+      <div class="net"><span class="muted">Gradients perimes rejetes</span><span id="g_drop">&mdash;</span></div>
+      <div class="net"><span class="muted">Reattributions (pannes)</span><span id="reassign">&mdash;</span></div>
+      <div class="net"><span class="muted">Temps ecoule</span><span id="elapsed">&mdash;</span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Volontaires connectes</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Appareil</th>
+          <th>OS</th>
+          <th>CPU</th>
+          <th>RAM</th>
+          <th>Lots rendus</th>
+          <th>Temps moyen</th>
+          <th>Fiabilité</th>
+          <th>Puissance</th>
+        </tr>
+      </thead>
+      <tbody id="clients"><tr><td colspan="8" class="muted">en attente de volontaires&hellip;</td></tr></tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>Journal temps réel</h2>
+    <div id="live_log" style="max-height:260px;overflow:auto;font-size:12px;line-height:1.5;background:#080c11;border:1px solid var(--line);border-radius:8px;padding:10px">
+      <div class="muted">En attente des événements...</div>
+    </div>
+  </div>
+  <div class="sub muted">Cible de precision : <span id="target">&mdash;</span> &middot; actualisation automatique</div>
+</div>
+
+<script>
+let lastGradients = 0;
+const hist = [];
+function fmtBytes(b){ if(b>1e6) return (b/1e6).toFixed(1)+' Mo'; if(b>1e3) return (b/1e3).toFixed(1)+' Ko'; return b+' o'; }
+function osClass(os){ return 'os-'+(['android','linux','windows'].includes(os)?os:'other'); }
+
+function drawChart(){
+  const c=document.getElementById('chart'), dpr=window.devicePixelRatio||1;
+  const W=c.clientWidth, H=c.clientHeight; c.width=W*dpr; c.height=H*dpr;
+  const x=c.getContext('2d'); x.scale(dpr,dpr); x.clearRect(0,0,W,H);
+  const pad=34, w=W-pad*1.5, h=H-pad*1.4;
+  // grille
+  x.strokeStyle='#1e2a36'; x.fillStyle='#7f93a6'; x.font='10px monospace'; x.lineWidth=1;
+  for(let i=0;i<=5;i++){ const yy=pad/2+h*i/5; x.beginPath(); x.moveTo(pad,yy); x.lineTo(pad+w,yy); x.stroke();
+    x.fillText((1-i/5).toFixed(1), 6, yy+3); }
+  if(hist.length<1) return;
+  const n=Math.max(hist.length-1,1);
+  const px=i=> pad + w*i/n;
+  const py=v=> pad/2 + h*(1-v);
+  // ligne cible
+  const tgt=parseFloat(document.getElementById('target').dataset.v||'0.9');
+  x.strokeStyle='#33485b'; x.setLineDash([4,4]); x.beginPath(); x.moveTo(pad,py(tgt)); x.lineTo(pad+w,py(tgt)); x.stroke(); x.setLineDash([]);
+  // courbe precision
+  x.strokeStyle='#37e6a4'; x.lineWidth=2; x.beginPath();
+  hist.forEach((p,i)=>{ const X=px(i),Y=py(p.accuracy); i?x.lineTo(X,Y):x.moveTo(X,Y); }); x.stroke();
+  x.fillStyle='#37e6a4';
+  hist.forEach((p,i)=>{ x.beginPath(); x.arc(px(i),py(p.accuracy),2.5,0,7); x.fill(); });
+}
+
+async function tick(){
+  let s; try{ s=await (await fetch('/status')).json(); }catch(e){ return; }
+  document.getElementById('jobname').textContent = s.job;
+  document.getElementById('epoch').firstChild.nodeValue = s.epoch;
+  document.getElementById('maxep').textContent = ' / '+s.max_epochs;
+  const pct=v=> v==null?'&mdash;':(v*100).toFixed(1)+'<small>%</small>';
+  document.getElementById('acc').innerHTML  = pct(s.last_accuracy);
+  document.getElementById('top3').innerHTML = pct(s.last_top3);
+  document.getElementById('f1').innerHTML   = s.last_f1==null?'&mdash;':s.last_f1.toFixed(3);
+  document.getElementById('turns').innerHTML= s.last_turns==null?'&mdash;':s.last_turns.toFixed(1);
+  document.getElementById('eps').textContent= s.epsilon;
+  const tEl=document.getElementById('target'); tEl.textContent=(s.target_accuracy*100)+'%'; tEl.dataset.v=s.target_accuracy;
+
+  const pr=s.progress, frac=pr.total?pr.done/pr.total:0;
+  document.getElementById('prog').style.width=(frac*100)+'%';
+  document.getElementById('progtxt').textContent = pr.done+' / '+pr.total+' sous-taches rendues';
+
+  const bw=s.bandwidth||{};
+  document.getElementById('bw_comp').textContent = fmtBytes(bw.octets_total_compresse||0);
+  document.getElementById('bw_raw').textContent  = fmtBytes(bw.octets_equivalent_brut_fp32||0);
+  document.getElementById('bw_red').textContent  = 'x'+(bw.facteur_reduction||0).toFixed(1);
+  document.getElementById('g_ok').textContent    = bw.gradients_appliques||0;
+  document.getElementById('grads_total').textContent = bw.gradients_appliques || 0;
+  document.getElementById('g_drop').textContent  = bw.gradients_perimes_rejetes||0;
+  document.getElementById('reassign').textContent= (s.scheduler||{}).reassigned||0;
+  document.getElementById('elapsed').textContent = (s.elapsed||0).toFixed(0)+' s';
+  
+  const logBox = document.getElementById('live_log');
+  const currentGradients = (bw.gradients_appliques || 0);
+
+  if (currentGradients !== lastGradients) {
+    const now = new Date().toLocaleTimeString();
+    const div = document.createElement('div');
+    div.innerHTML = `[${now}] Gradients appliqués : ${currentGradients}`;
+    logBox.prepend(div);
+    lastGradients = currentGradients;
+  }
+
+  const sched = s.scheduler || {};
+  const taskStats = sched.tasks || {};
+  document.getElementById('tasks_pending').textContent = taskStats.pending ?? 0;
+  document.getElementById('tasks_inflight').textContent = taskStats.inflight ?? 0;
+  document.getElementById('tasks_done').textContent = taskStats.done ?? 0;
+  document.getElementById('workers_count').textContent = Object.keys(sched.clients || {}).length;
+
+  const st=document.getElementById('state');
+
+  if(s.finished){
+    st.textContent='termine';
+    st.className='pill done';
+
+    btnStart.textContent = 'Terminé';
+    btnStart.disabled = true;
+    btnStart.style.background = 'var(--dim)';
+  }
+
+  // clients
+  const cs=(s.scheduler||{}).clients||{};
+  const tb=document.getElementById('clients');
+  const keys=Object.keys(cs);
+
+  if(keys.length){
+    tb.innerHTML = keys.map(k=>{
+      const c=cs[k];
+      const os=(c.info.os||'other');
+      const ram = c.info.ram_gb == null ? '&mdash;' : c.info.ram_gb + ' Go';
+
+      return `<tr>
+        <td><div class="dev"><span class="ico ${osClass(os)}"></span>${c.info.device}</div></td>
+        <td class="muted">${os}</td>
+        <td>${c.info.cpu || '&mdash;'}</td>
+        <td>${ram}</td>
+        <td>${c.completed}</td>
+        <td>${c.avg_task_seconds ? c.avg_task_seconds.toFixed(2)+' s' : '&mdash;'}</td>
+        <td>${(c.reliability*100).toFixed(0)}%</td>
+        <td>${c.power}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // historique pour la courbe
+  if(s.history){ hist.length=0; s.history.forEach(h=>hist.push(h)); drawChart(); }
+}
+const btnStart = document.getElementById('btnStart');
+
+btnStart.addEventListener('click', async () => {
+  try {
+    const r = await fetch('/start_training', { method: 'POST' });
+    const data = await r.json();
+
+    if (data.started) {
+      btnStart.textContent = 'Calcul lancé';
+      btnStart.disabled = true;
+      btnStart.style.background = 'var(--accent)';
+      btnStart.style.cursor = 'not-allowed';
+
+      const st = document.getElementById('state');
+      st.textContent = 'en cours';
+      st.className = 'pill run';
+    }
+  } catch (e) {
+    alert("Impossible de démarrer l'entraînement. Vérifie que le serveur est lancé.");
+  }
+});
+
+setInterval(tick, 1000); tick();
+window.addEventListener('resize', drawChart);
+</script>
+</body>
+</html>
