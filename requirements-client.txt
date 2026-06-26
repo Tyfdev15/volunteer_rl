@@ -1,0 +1,9 @@
+# (cote VOLONTAIRE, seuls numpy et requests sont necessaires)
+
+numpy>=1.26         # calcul numerique (reseaux en NumPy pur)
+requests>=2.31      # communication volontaire <-> serveur
+psutil>=5.9         # pour envoyer : le nombre de cœurs, la RAM, l'utilisation CPU
+
+# Aucune dependance lourde (ni TensorFlow ni PyTorch) : c'est volontaire, pour
+# qu'un smartphone (Termux/Pydroid) puisse participer au calcul.
+# Modules standard utilises : threading, zlib, base64, json, socket, csv (inclus avec Python).
