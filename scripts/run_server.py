@@ -56,7 +56,13 @@ def banner(host, port, job):
 def watch_completion(app):
     while not app.coord.finished:
         time.sleep(0.5)
+
     h = app.coord.history[-1] if app.coord.history else {}
+
+    elapsed = (
+        (app.coord.end_time or time.time()) - app.coord.start_time
+    ) if app.coord.start_time else 0
+
     line = "=" * 64
     print("\n" + line)
     print("  CALCUL TERMINE  --  le serveur a atteint le critere d'arret")
@@ -65,7 +71,7 @@ def watch_completion(app):
     print(f"  Precision finale   : {h.get('accuracy', 0):.3f}")
     print(f"  Top-3 / F1 macro   : {h.get('top3', 0):.3f} / {h.get('macro_f1', 0):.3f}")
     print(f"  Tours moyens       : {h.get('avg_turns', 0):.1f}")
-    print(f"  Temps total        : {h.get('elapsed', 0):.1f} s")
+    print(f"  Temps total        : {elapsed:.1f} s")
     print(line, flush=True)
 
 

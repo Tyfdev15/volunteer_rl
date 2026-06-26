@@ -120,6 +120,10 @@ class Scheduler:
             inflight_count = len(self.inflight)
             done_count = self.done
 
+            total_compute_seconds = sum(
+                c.total_compute_seconds for c in self.clients.values()
+            )
+
             return {
                 "tasks": {
                     "total": self.total,
@@ -128,6 +132,8 @@ class Scheduler:
                     "done": done_count,
                     "reassigned": self.reassigned,
                 },
+                "total_compute_seconds": round(total_compute_seconds, 3),
+                "active_workers": len(self.clients),
                 "clients": {
                     cid: {
                         "info": c.info,
@@ -139,8 +145,9 @@ class Scheduler:
                         "last_seen": c.last_seen,
                         "avg_task_seconds": round(c.total_compute_seconds / c.completed, 3) if c.completed else 0,
                         "last_task_seconds": round(c.last_task_seconds, 3),
+                        "total_compute_seconds": round(c.total_compute_seconds, 3),
                     }
                     for cid, c in self.clients.items()
                 },
                 "reassigned": self.reassigned,
-            }    
+            }   

@@ -32,6 +32,7 @@ class Coordinator:
         self.history = []
         self.finished = False
         self.start_time = None
+        self.end_time = None
         self.epoch_start = None
         self._finalizing = False
         self.lock = threading.Lock()
@@ -116,6 +117,7 @@ class Coordinator:
          # Cela permet de comparer 1 volontaire vs plusieurs volontaires sur la même quantité de travail.
         if self.epoch >= self.cfg.train.max_epochs:
             self.finished = True
+            self.end_time = time.time()
         else:
             self.epsilon = max(self.cfg.model.epsilon_end,
                                self.epsilon * self.cfg.model.epsilon_decay)
@@ -125,6 +127,17 @@ class Coordinator:
     def status(self):
         done, total = self.sched.progress()
         last = self.history[-1] if self.history else {}
+        sched_stats = self.sched.stats()
+        elapsed = ((self.end_time or time.time()) - self.start_time) if self.start_time else 0
+        total_compute = sched_stats.get("total_compute_seconds", 0)
+        workers = max(1, sched_stats.get("active_workers", 1))
+
+        speedup = total_compute / elapsed if elapsed > 0 else 0
+        efficiency = speedup / workers if workers > 0 else 0
+
+        bandwidth = self.ps.bandwidth_stats()
+        gradients = bandwidth.get("gradients_appliques", 0)
+        throughput_gradients = gradients / elapsed if elapsed > 0 else 0        
         return {
             "job": self.job.name,
             "epoch": self.epoch,
@@ -137,8 +150,14 @@ class Coordinator:
             "last_f1": last.get("macro_f1"),
             "last_turns": last.get("avg_turns"),
             "epsilon": round(self.epsilon, 3),
-            "elapsed": (time.time() - self.start_time) if self.start_time else 0,
-            "bandwidth": self.ps.bandwidth_stats(),
-            "scheduler": self.sched.stats(),
+            "elapsed": elapsed,
+            "bandwidth": bandwidth,
+            "scheduler": sched_stats,
+            "distributed_metrics": {
+                "total_compute_seconds": round(total_compute, 3),
+                "speedup": round(speedup, 3),
+                "efficiency": round(efficiency, 3),
+                "throughput_gradients_per_second": round(throughput_gradients, 4),
+            },
             "history": self.history,
         }

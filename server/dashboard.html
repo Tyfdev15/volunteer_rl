@@ -81,6 +81,10 @@
     <div class="card"><div class="k">Sous-tâches rendues/epoch</div><div class="v" id="tasks_done">&mdash;</div></div>
     <div class="card"><div class="k">Gradients appliqués total</div><div class="v" id="grads_total">&mdash;</div></div>
     <div class="card"><div class="k">Volontaires actifs</div><div class="v" id="workers_count">&mdash;</div></div>
+    <div class="card"><div class="k">Temps CPU cumulé</div><div class="v" id="cpu_total">&mdash;</div></div>
+    <div class="card"><div class="k">Speedup</div><div class="v" id="speedup">&mdash;</div></div>
+    <div class="card"><div class="k">Efficacité</div><div class="v" id="efficiency">&mdash;</div></div>
+    <div class="card"><div class="k">Débit gradients/s</div><div class="v" id="throughput">&mdash;</div></div>
   </div>
   
   
@@ -103,6 +107,7 @@
       <div class="net"><span class="muted">Reduction</span><span id="bw_red" style="color:var(--accent)">&mdash;</span></div>
       <div class="net"><span class="muted">Gradients appliques</span><span id="g_ok">&mdash;</span></div>
       <div class="net"><span class="muted">Gradients perimes rejetes</span><span id="g_drop">&mdash;</span></div>
+      <div class="net"><span class="muted">Taux de rejet gradients</span><span id="drop_rate">&mdash;</span></div>
       <div class="net"><span class="muted">Reattributions (pannes)</span><span id="reassign">&mdash;</span></div>
       <div class="net"><span class="muted">Temps ecoule</span><span id="elapsed">&mdash;</span></div>
     </div>
@@ -188,6 +193,10 @@ async function tick(){
   document.getElementById('g_ok').textContent    = bw.gradients_appliques||0;
   document.getElementById('grads_total').textContent = bw.gradients_appliques || 0;
   document.getElementById('g_drop').textContent  = bw.gradients_perimes_rejetes||0;
+  const applied = bw.gradients_appliques || 0;
+  const dropped = bw.gradients_perimes_rejetes || 0;
+  const dropRate = (applied + dropped) > 0 ? dropped / (applied + dropped) : 0;
+  document.getElementById('drop_rate').textContent = (dropRate * 100).toFixed(2) + '%';
   document.getElementById('reassign').textContent= (s.scheduler||{}).reassigned||0;
   document.getElementById('elapsed').textContent = (s.elapsed||0).toFixed(0)+' s';
   
@@ -208,6 +217,20 @@ async function tick(){
   document.getElementById('tasks_inflight').textContent = taskStats.inflight ?? 0;
   document.getElementById('tasks_done').textContent = taskStats.done ?? 0;
   document.getElementById('workers_count').textContent = Object.keys(sched.clients || {}).length;
+
+  const dm = s.distributed_metrics || {};
+
+  document.getElementById('cpu_total').textContent =
+    dm.total_compute_seconds == null ? '—' : dm.total_compute_seconds.toFixed(0) + ' s';
+
+  document.getElementById('speedup').textContent =
+    dm.speedup == null ? '—' : 'x' + dm.speedup.toFixed(2);
+
+  document.getElementById('efficiency').textContent =
+    dm.efficiency == null ? '—' : (dm.efficiency * 100).toFixed(1) + '%';
+
+  document.getElementById('throughput').textContent =
+    dm.throughput_gradients_per_second == null ? '—' : dm.throughput_gradients_per_second.toFixed(2);
 
   const st=document.getElementById('state');
 
