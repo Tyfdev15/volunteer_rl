@@ -17,7 +17,7 @@ import numpy as np
 from config import DEFAULT
 from framework.compression import encode_vector, decode_vector
 from jobs.rl_diagnosis.job import RLDiagnosisJob
-from client.device_info import get_device_info, estimate_power
+from client.device_info import get_device_info, estimate_power, benchmark_2s
 
 
 class VolunteerClient:
@@ -28,7 +28,14 @@ class VolunteerClient:
         self.slowdown = slowdown
         self.max_iters = max_iters
         self.info = get_device_info(device_label)
+
+        print("Benchmark local de 2 secondes en cours...")
+        benchmark_score = benchmark_2s(2.0)
+        self.info["benchmark_score"] = benchmark_score
+
         self.power = power if power is not None else estimate_power(self.info)
+
+        print(f"Benchmark terminé : score={benchmark_score}, puissance={self.power}")
         self.client_id = f"{self.info['device']}-{int(time.time()*1000) % 100000}"
         self.job = None
         self.tcfg = cfg.transport
@@ -81,11 +88,20 @@ class VolunteerClient:
         while it < self.max_iters:
             it += 1
             try:
-                resp = requests.post(f"{self.server}/request_work", timeout=15, json={
-                    "client_id": self.client_id, "info": self.info, "power": self.power
-                }).json()
+                request_start = time.time()
+
+                response = requests.post(f"{self.server}/request_work", timeout=15, json={
+                    "client_id": self.client_id,
+                    "info": self.info,
+                    "power": self.power
+                })
+
+                request_work_seconds = time.time() - request_start
+                resp = response.json()
+
             except requests.RequestException:
-                time.sleep(0.5); continue
+                time.sleep(0.5)
+                continue
 
             if resp.get("finished"):
                 if verbose:
@@ -108,6 +124,7 @@ class VolunteerClient:
                 payload, _ = encode_vector(grad, dtype=self.tcfg.dtype, topk=self.tcfg.topk)
 
                 lm["duration_seconds"] = task_duration
+                lm["request_work_seconds"] = request_work_seconds / max(1, len(tasks))
                 lm["client_device"] = self.info.get("device")
                 lm["client_os"] = self.info.get("os")
                 lm["client_cpu"] = self.info.get("cpu")
@@ -123,9 +140,35 @@ class VolunteerClient:
                 if self.slowdown:
                     time.sleep(self.slowdown)
             try:
-                requests.post(f"{self.server}/report", timeout=15,
-                              json={"client_id": self.client_id, "results": results})
+                report_start = time.time()
+
+                requests.post(
+                    f"{self.server}/report",
+                    timeout=15,
+                    json={"client_id": self.client_id, "results": results}
+                )
+
+                report_seconds = time.time() - report_start
+
+                requests.post(
+                    f"{self.server}/client_comm_metrics",
+                    timeout=10,
+                    json={
+                        "client_id": self.client_id,
+                        "task_ids": [r["task_id"] for r in results],
+                        "report_seconds": report_seconds,
+                        "tasks_count": len(results)
+                    }
+                )
+
+                if verbose:
+                    print(
+                        f"[communication] request_work={request_work_seconds:.4f}s "
+                        f"report={report_seconds:.4f}s "
+                        f"tasks={len(results)}"
+                    )
+
             except requests.RequestException:
-                pass  # rendu perdu -> le serveur reattribuera ces sous-taches
+                pass
         if verbose:
             print(f"[volontaire {self.client_id}] limite d'iterations atteinte.")

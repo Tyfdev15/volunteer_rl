@@ -76,6 +76,23 @@ def create_app(job, cfg):
         coord.report_gradients(client_id, results)
 
         return jsonify({"ok": True, "finished": coord.finished})
+    @app.post("/client_comm_metrics")
+    def client_comm_metrics():
+        body = request.get_json(force=True)
+
+        client_id = body.get("client_id")
+        task_ids = body.get("task_ids", [])
+        report_seconds = body.get("report_seconds", 0.0)
+        tasks_count = body.get("tasks_count", len(task_ids))
+
+        coord.record_client_comm_metrics(
+            client_id,
+            task_ids,
+            report_seconds,
+            tasks_count
+        )
+
+        return jsonify({"ok": True})
 
     @app.get("/status")
     def status():

@@ -39,6 +39,20 @@ class Coordinator:
         # metriques locales agregees de l'epoque courante
         self._epoch_local_acc = []
         self._epoch_local_turns = []
+        self.events = []
+
+    def add_event(self, event_type, message):
+        """
+        Ajoute un événement visible dans le journal temps réel du dashboard.
+        """
+        self.events.append({
+            "time": time.strftime("%H:%M:%S"),
+            "type": event_type,
+            "message": message
+        })
+
+        if len(self.events) > 200:
+            self.events = self.events[-200:]
 
     # ----- demarrage ----- #
     def start(self):
@@ -60,6 +74,18 @@ class Coordinator:
         if self.finished:
             return {"tasks": [], "finished": True}
         batch = self.sched.assign(client_id)
+        if batch:
+            device = info.get("device", client_id)
+            for task in batch:
+                self.add_event(
+                    "SEND_TASK",
+                    f"{device} reçoit {task['task_id']}"
+                )
+        else:
+            self.add_event(
+                "NO_TASK",
+                f"{info.get('device', client_id)} attend : aucune sous-tâche disponible"
+            )
         payload, version = self.ps.params_payload()
         return {"tasks": batch, "params": payload, "params_version": version,
                 "finished": False}
@@ -73,7 +99,20 @@ class Coordinator:
             self.sched.report(
                 client_id,
                 r["task_id"],
-                lm.get("duration_seconds", 0.0)
+                lm.get("duration_seconds", 0.0),
+                lm.get("request_work_seconds", 0.0)
+            )
+
+            device = lm.get("client_device", client_id)
+
+            self.add_event(
+                "TASK_DONE",
+                f"{device} termine {r['task_id']} en {lm.get('duration_seconds', 0):.2f}s"
+            )
+
+            self.add_event(
+                "GRADIENT",
+                f"Gradient appliqué pour {r['task_id']}"
             )
             #lm = r.get("local_metrics") or {}
             if "local_accuracy" in lm:
@@ -82,6 +121,14 @@ class Coordinator:
                 self._epoch_local_turns.append(lm["avg_turns"])
         self._maybe_finalize()
 
+
+    def record_client_comm_metrics(self, client_id, task_ids, report_seconds, tasks_count):
+        self.sched.add_report_communication(client_id, report_seconds, tasks_count)
+
+        self.add_event(
+            "COMMUNICATION",
+            f"{client_id} POST /report = {float(report_seconds or 0):.4f}s pour {tasks_count} tâche(s)"
+        )
     # ----- finalisation d'epoque ----- #
     def _maybe_finalize(self):
         done, total = self.sched.progress()
@@ -159,5 +206,6 @@ class Coordinator:
                 "efficiency": round(efficiency, 3),
                 "throughput_gradients_per_second": round(throughput_gradients, 4),
             },
+            "events": self.events[-100:],
             "history": self.history,
         }

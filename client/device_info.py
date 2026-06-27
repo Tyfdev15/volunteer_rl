@@ -8,6 +8,8 @@ qui determine combien de sous-taches lui sont confiees par requete.
 import os
 import platform
 import multiprocessing
+import time
+import math
 
 
 def is_android():
@@ -33,14 +35,34 @@ def get_device_info(label=None):
         "machine": platform.machine(),
     }
 
+def benchmark_2s(duration=2.0):
+    """
+    Benchmark CPU court exécuté au lancement du volontaire.
+    Il permet d'estimer automatiquement la puissance réelle de l'appareil.
+    """
+    start = time.time()
+    ops = 0
+    x = 0.0
+
+    while time.time() - start < duration:
+        for i in range(1000):
+            x += math.sin(i) * math.cos(i)
+        ops += 1000
+
+    elapsed = time.time() - start
+    return int(ops / elapsed)
 
 def estimate_power(info):
     """
-    Puissance = nombre de sous-taches accordees par requete. Heuristique simple
-    fondee sur le type d'appareil et le nombre de coeurs (un PC traite plusieurs
-    sous-taches par aller-retour, un smartphone une seule).
+    Puissance calculée à partir du benchmark local.
+    Cette valeur détermine combien de sous-tâches le volontaire reçoit par requête.
     """
-    cpu = info.get("cpu", 1)
-    if info.get("os") == "android":
+    score = info.get("benchmark_score", 0)
+
+    if score < 300_000:
         return 1
-    return max(1, min(4, cpu // 2))
+    if score < 700_000:
+        return 2
+    if score < 1_200_000:
+        return 3
+    return 4

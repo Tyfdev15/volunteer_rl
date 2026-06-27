@@ -85,6 +85,10 @@
     <div class="card"><div class="k">Speedup</div><div class="v" id="speedup">&mdash;</div></div>
     <div class="card"><div class="k">Efficacité</div><div class="v" id="efficiency">&mdash;</div></div>
     <div class="card"><div class="k">Débit gradients/s</div><div class="v" id="throughput">&mdash;</div></div>
+    <div class="card"><div class="k">Temps communication</div><div class="v" id="comm_total">&mdash;</div></div>
+    <div class="card"><div class="k">POST /request_work</div><div class="v" id="comm_request">&mdash;</div></div>
+    <div class="card"><div class="k">POST /report</div><div class="v" id="comm_report">&mdash;</div></div>
+    <div class="card"><div class="k">Comm. moyenne / lot</div><div class="v" id="comm_avg">&mdash;</div></div>
   </div>
   
   
@@ -124,11 +128,13 @@
           <th>RAM</th>
           <th>Lots rendus</th>
           <th>Temps moyen</th>
+          <th>Comm. moyenne</th>
+          <th>Temps total moyen</th>
           <th>Fiabilité</th>
           <th>Puissance</th>
         </tr>
       </thead>
-      <tbody id="clients"><tr><td colspan="8" class="muted">en attente de volontaires&hellip;</td></tr></tbody>
+      <tbody id="clients"><tr><td colspan="10" class="muted">en attente de volontaires&hellip;</td></tr></tbody>
     </table>
   </div>
   <div class="panel">
@@ -201,14 +207,12 @@ async function tick(){
   document.getElementById('elapsed').textContent = (s.elapsed||0).toFixed(0)+' s';
   
   const logBox = document.getElementById('live_log');
-  const currentGradients = (bw.gradients_appliques || 0);
+  const events = s.events || [];
 
-  if (currentGradients !== lastGradients) {
-    const now = new Date().toLocaleTimeString();
-    const div = document.createElement('div');
-    div.innerHTML = `[${now}] Gradients appliqués : ${currentGradients}`;
-    logBox.prepend(div);
-    lastGradients = currentGradients;
+  if(events.length){
+    logBox.innerHTML = events.slice().reverse().map(ev => {
+      return `<div>[${ev.time}] ${ev.message}</div>`;
+    }).join('');
   }
 
   const sched = s.scheduler || {};
@@ -217,6 +221,16 @@ async function tick(){
   document.getElementById('tasks_inflight').textContent = taskStats.inflight ?? 0;
   document.getElementById('tasks_done').textContent = taskStats.done ?? 0;
   document.getElementById('workers_count').textContent = Object.keys(sched.clients || {}).length;
+  const totalComm = sched.total_communication_seconds || 0;
+  const totalReq = sched.total_request_seconds || 0;
+  const totalRep = sched.total_report_seconds || 0;
+  const doneTasks = (sched.tasks || {}).done || 0;
+
+  document.getElementById('comm_total').textContent = totalComm.toFixed(2) + ' s';
+  document.getElementById('comm_request').textContent = totalReq.toFixed(2) + ' s';
+  document.getElementById('comm_report').textContent = totalRep.toFixed(2) + ' s';
+  document.getElementById('comm_avg').textContent =
+    doneTasks ? (totalComm / doneTasks).toFixed(4) + ' s' : '—';
 
   const dm = s.distributed_metrics || {};
 
@@ -261,6 +275,8 @@ async function tick(){
         <td>${ram}</td>
         <td>${c.completed}</td>
         <td>${c.avg_task_seconds ? c.avg_task_seconds.toFixed(2)+' s' : '&mdash;'}</td>
+        <td>${c.avg_communication_seconds ? c.avg_communication_seconds.toFixed(4)+' s' : '&mdash;'}</td>
+        <td>${c.avg_total_task_seconds ? c.avg_total_task_seconds.toFixed(4)+' s' : '&mdash;'}</td>
         <td>${(c.reliability*100).toFixed(0)}%</td>
         <td>${c.power}</td>
       </tr>`;

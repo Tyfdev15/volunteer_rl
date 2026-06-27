@@ -27,6 +27,10 @@ class ClientStat:
         self.last_seen = time.time()
         self.total_compute_seconds = 0.0
         self.last_task_seconds = 0.0
+        self.total_request_seconds = 0.0
+        self.total_report_seconds = 0.0
+        self.total_communication_seconds = 0.0
+        self.total_task_seconds = 0.0
 
     @property
     def reliability(self):
@@ -93,7 +97,7 @@ class Scheduler:
             return batch
 
     # ----- compte rendu d'une sous-tache ----- #
-    def report(self, client_id, task_id, duration_seconds=0.0):
+    def report(self, client_id, task_id, duration_seconds=0.0, request_work_seconds=0.0):
         with self.lock:
             if task_id in self.inflight:
                 del self.inflight[task_id]
@@ -102,13 +106,38 @@ class Scheduler:
                 if client_id in self.clients:
                     c = self.clients[client_id]
                     c.completed += 1
-                    c.last_task_seconds = float(duration_seconds or 0.0)
-                    c.total_compute_seconds += float(duration_seconds or 0.0)
+
+                    compute = float(duration_seconds or 0.0)
+                    request_time = float(request_work_seconds or 0.0)
+
+                    c.last_task_seconds = compute
+                    c.total_compute_seconds += compute
+
+                    c.total_request_seconds += request_time
+                    c.total_communication_seconds += request_time
+                    c.total_task_seconds += compute + request_time
 
                 return True
 
-            return False # sous-tache deja reattribuee/terminee (rendu tardif ignore)
+            return False
 
+    def add_report_communication(self, client_id, report_seconds=0.0, tasks_count=1):
+        """
+        Ajoute le temps POST /report.
+        Un POST /report peut contenir plusieurs tâches, donc on l'ajoute au total
+        et il sera moyenné ensuite.
+        """
+        with self.lock:
+            if client_id not in self.clients:
+                return
+
+            c = self.clients[client_id]
+            report_seconds = float(report_seconds or 0.0)
+
+            c.total_report_seconds += report_seconds
+            c.total_communication_seconds += report_seconds
+            c.total_task_seconds += report_seconds
+    
     # ----- etat ----- #
     def progress(self):
         with self.lock:
@@ -120,9 +149,10 @@ class Scheduler:
             inflight_count = len(self.inflight)
             done_count = self.done
 
-            total_compute_seconds = sum(
-                c.total_compute_seconds for c in self.clients.values()
-            )
+            total_compute_seconds = sum(c.total_compute_seconds for c in self.clients.values())
+            total_request_seconds = sum(c.total_request_seconds for c in self.clients.values())
+            total_report_seconds = sum(c.total_report_seconds for c in self.clients.values())
+            total_communication_seconds = sum(c.total_communication_seconds for c in self.clients.values())
 
             return {
                 "tasks": {
@@ -133,6 +163,9 @@ class Scheduler:
                     "reassigned": self.reassigned,
                 },
                 "total_compute_seconds": round(total_compute_seconds, 3),
+                "total_request_seconds": round(total_request_seconds, 3),
+                "total_report_seconds": round(total_report_seconds, 3),
+                "total_communication_seconds": round(total_communication_seconds, 3),
                 "active_workers": len(self.clients),
                 "clients": {
                     cid: {
@@ -146,6 +179,11 @@ class Scheduler:
                         "avg_task_seconds": round(c.total_compute_seconds / c.completed, 3) if c.completed else 0,
                         "last_task_seconds": round(c.last_task_seconds, 3),
                         "total_compute_seconds": round(c.total_compute_seconds, 3),
+                        "total_request_seconds": round(c.total_request_seconds, 3),
+                        "total_report_seconds": round(c.total_report_seconds, 3),
+                        "total_communication_seconds": round(c.total_communication_seconds, 3),
+                        "avg_communication_seconds": round(c.total_communication_seconds / c.completed, 4) if c.completed else 0,
+                        "avg_total_task_seconds": round(c.total_task_seconds / c.completed, 4) if c.completed else 0,
                     }
                     for cid, c in self.clients.items()
                 },
