@@ -132,9 +132,11 @@
           <th>Temps total moyen</th>
           <th>Fiabilité</th>
           <th>Puissance</th>
+          <th>Puissance dynamique</th>
+          <th>Score vitesse</th>
         </tr>
       </thead>
-      <tbody id="clients"><tr><td colspan="10" class="muted">en attente de volontaires&hellip;</td></tr></tbody>
+      <tbody id="clients"><tr><td colspan="12" class="muted">en attente de volontaires&hellip;</td></tr></tbody>
     </table>
   </div>
   <div class="panel">
@@ -279,6 +281,8 @@ async function tick(){
         <td>${c.avg_total_task_seconds ? c.avg_total_task_seconds.toFixed(4)+' s' : '&mdash;'}</td>
         <td>${(c.reliability*100).toFixed(0)}%</td>
         <td>${c.power}</td>
+        <td>${c.dynamic_power ?? '&mdash;'}</td>
+        <td>${c.speed_score ? c.speed_score.toFixed(2) : '&mdash;'}</td>
       </tr>`;
     }).join('');
   }

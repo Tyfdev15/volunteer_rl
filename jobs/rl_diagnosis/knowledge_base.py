@@ -2,8 +2,7 @@
 Base de connaissances medicale (MedlinePlus)
 ============================================
 Charge le fichier CSV de reference (chaque maladie -> liste de symptomes) et
-genere des patients synthetiques selon le meme procede que le code C++ de
-reference :
+genere des patients synthetiques selon le procede :
   * pour un patient d'une maladie donnee, on tire un sous-ensemble de ses
     symptomes (loi de Poisson, borne) ;
   * une partie est "connue d'emblee" (presente dans l'etat initial), le reste

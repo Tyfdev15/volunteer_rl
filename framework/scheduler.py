@@ -31,6 +31,9 @@ class ClientStat:
         self.total_report_seconds = 0.0
         self.total_communication_seconds = 0.0
         self.total_task_seconds = 0.0
+        self.avg_task_time = 0.0
+        self.speed_score = 1.0
+        self.dynamic_power = power
 
     @property
     def reliability(self):
@@ -83,18 +86,47 @@ class Scheduler:
     def assign(self, client_id):
         with self.lock:
             self._reclaim_expired()
+
             if client_id not in self.clients:
                 return []
-            n = self.clients[client_id].power
+
+            c = self.clients[client_id]
+
+            # Au début, on utilise la puissance estimée par benchmark.
+            # Après quelques tâches, on utilise le temps moyen réel.
+            measured_clients = [
+                x for x in self.clients.values()
+                if x.avg_task_time > 0
+            ]
+
+            if measured_clients and c.avg_task_time > 0:
+                fastest = min(x.avg_task_time for x in measured_clients)
+
+                # Ratio de performance réel :
+                # plus avg_task_time est faible, plus la machine est rapide.
+                ratio = fastest / c.avg_task_time
+
+                # Le plus rapide peut recevoir jusqu'à 8 tâches.
+                n = round(8 * ratio)
+                n = max(1, min(8, n))
+            else:
+                # Phase de démarrage : benchmark initial
+                n = max(1, min(8, int(c.power)))
+
+            c.dynamic_power = n
+            c.power = n
+
             batch = []
             deadline = time.time() + self.cfg.train.task_timeout
+
             while self.pending and len(batch) < n:
                 tid = self.pending.popleft()
                 self.inflight[tid] = (client_id, deadline)
-                self.clients[client_id].assigned += 1
+                c.assigned += 1
                 batch.append(self.tasks[tid])
-            self.clients[client_id].last_seen = time.time()
-            return batch
+
+            c.last_seen = time.time()
+            return batch    
 
     # ----- compte rendu d'une sous-tache ----- #
     def report(self, client_id, task_id, duration_seconds=0.0, request_work_seconds=0.0):
@@ -112,6 +144,24 @@ class Scheduler:
 
                     c.last_task_seconds = compute
                     c.total_compute_seconds += compute
+                    
+                    # Moyenne glissante du temps de calcul réel
+                    if compute > 0:
+                        if c.avg_task_time <= 0:
+                            c.avg_task_time = compute
+                        else:
+                            alpha = 0.20
+                            c.avg_task_time = alpha * compute + (1 - alpha) * c.avg_task_time
+
+                    # Score relatif : 1.0 = volontaire le plus rapide observé
+                    measured = [
+                        x.avg_task_time for x in self.clients.values()
+                        if x.avg_task_time > 0
+                    ]
+
+                    if measured and c.avg_task_time > 0:
+                        fastest = min(measured)
+                        c.speed_score = fastest / c.avg_task_time
 
                     c.total_request_seconds += request_time
                     c.total_communication_seconds += request_time
@@ -184,6 +234,9 @@ class Scheduler:
                         "total_communication_seconds": round(c.total_communication_seconds, 3),
                         "avg_communication_seconds": round(c.total_communication_seconds / c.completed, 4) if c.completed else 0,
                         "avg_total_task_seconds": round(c.total_task_seconds / c.completed, 4) if c.completed else 0,
+                        "avg_task_time_dynamic": round(c.avg_task_time, 4),
+                        "speed_score": round(c.speed_score, 4),
+                        "dynamic_power": c.dynamic_power,
                     }
                     for cid, c in self.clients.items()
                 },
