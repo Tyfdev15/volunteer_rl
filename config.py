@@ -71,7 +71,7 @@ class TrainConfig:
     target_accuracy: float = 0.985   # critere d'arret (convergence) ini 0.9
     completion_fraction: float = 0.85   # une epoque se finalise des 85% des taches rendues ini 0.85
     task_timeout: float = 300.0           # s avant reattribution (tolerance aux pannes) ini 8.0
-    staleness_max: int = 60            # gradients trop perimes (async) sont rejetes ini 12 30
+    staleness_max: int = 30            # gradients trop perimes (async) sont rejetes ini 12 30
 
 
 # --------------------------------------------------------------------------- #
