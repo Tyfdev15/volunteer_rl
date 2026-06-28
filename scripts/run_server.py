@@ -41,6 +41,12 @@ def banner(host, port, job):
     print(line)
     print("  SERVEUR DE CALCUL VOLONTAIRE  --  DEMARRE")
     print(line)
+    print("           VolunteerRL Framework")
+    print("       Developed by Tankeu Frederick")
+    print(" Department of ICT, University of Ebolowa")
+    print(" Department of Physics, University of Yaoundé I")
+    print(line)
+    
     print(f"  Algorithme         : {job.name}")
     print(f"  Parametres modele  : {job.n_params():,}")
     print(f"  Adresse locale     : http://{ip}:{port}")

@@ -1,4 +1,20 @@
 """
+VolunteerRL Framework
+----------------------------------------------
+
+Distributed Reinforcement Learning
+for Medical Diagnosis using Volunteer Computing
+
+Developed by:
+Tankeu Frederick
+
+Department of ICT (University of Ebolowa)
+Department of Physics (University of Yaoundé I)
+
+2026
+"""
+
+"""
 Base de connaissances medicale (MedlinePlus)
 ============================================
 Charge le fichier CSV de reference (chaque maladie -> liste de symptomes) et

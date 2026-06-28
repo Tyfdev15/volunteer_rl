@@ -1,4 +1,19 @@
 """
+VolunteerRL Framework
+----------------------------------------------
+
+Distributed Reinforcement Learning
+for Medical Diagnosis using Volunteer Computing
+
+Developed by:
+Tankeu Frederick
+
+Department of ICT (University of Ebolowa)
+Department of Physics (University of Yaoundé I)
+
+2026
+"""
+"""
 Coordinateur
 ============
 Chef d'orchestre du calcul distribue. A chaque epoque :

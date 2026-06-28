@@ -54,15 +54,15 @@ def benchmark_2s(duration=2.0):
 
 def estimate_power(info):
     """
-    Puissance calculée à partir du benchmark local.
-    Cette valeur détermine combien de sous-tâches le volontaire reçoit par requête.
+    Puissance initiale provisoire.
+    On évite de plafonner tout le monde à 4.
     """
     score = info.get("benchmark_score", 0)
 
-    if score < 300_000:
+    if score <= 0:
         return 1
-    if score < 700_000:
-        return 2
-    if score < 1_200_000:
-        return 3
-    return 4
+
+    # Exemple : 2 000 000 -> puissance 2
+    # 4 000 000 -> puissance 4
+    # 8 000 000 -> puissance 8
+    return max(1, min(12, round(score / 1_000_000)))

@@ -82,7 +82,7 @@
     <div class="card"><div class="k">Gradients appliqués total</div><div class="v" id="grads_total">&mdash;</div></div>
     <div class="card"><div class="k">Volontaires actifs</div><div class="v" id="workers_count">&mdash;</div></div>
     <div class="card"><div class="k">Temps CPU cumulé</div><div class="v" id="cpu_total">&mdash;</div></div>
-    <div class="card"><div class="k">Speedup</div><div class="v" id="speedup">&mdash;</div></div>
+    <div class="card"><div class="k">Speedup interne</div><div class="v" id="speedup">&mdash;</div></div>
     <div class="card"><div class="k">Efficacité</div><div class="v" id="efficiency">&mdash;</div></div>
     <div class="card"><div class="k">Débit gradients/s</div><div class="v" id="throughput">&mdash;</div></div>
     <div class="card"><div class="k">Temps communication</div><div class="v" id="comm_total">&mdash;</div></div>
@@ -131,8 +131,8 @@
           <th>Comm. moyenne</th>
           <th>Temps total moyen</th>
           <th>Fiabilité</th>
-          <th>Puissance</th>
-          <th>Puissance dynamique</th>
+          <th>Benchmark</th>
+          <th>Temps de calcul</th>
           <th>Score vitesse</th>
         </tr>
       </thead>
@@ -226,13 +226,15 @@ async function tick(){
   const totalComm = sched.total_communication_seconds || 0;
   const totalReq = sched.total_request_seconds || 0;
   const totalRep = sched.total_report_seconds || 0;
-  const doneTasks = (sched.tasks || {}).done || 0;
+  //const doneTasks = (sched.tasks || {}).done || 0;
 
   document.getElementById('comm_total').textContent = totalComm.toFixed(2) + ' s';
   document.getElementById('comm_request').textContent = totalReq.toFixed(2) + ' s';
   document.getElementById('comm_report').textContent = totalRep.toFixed(2) + ' s';
   document.getElementById('comm_avg').textContent =
-    doneTasks ? (totalComm / doneTasks).toFixed(4) + ' s' : '—';
+    sched.avg_communication_per_task
+      ? sched.avg_communication_per_task.toFixed(4) + ' s'
+      : '—';
 
   const dm = s.distributed_metrics || {};
 
@@ -280,8 +282,8 @@ async function tick(){
         <td>${c.avg_communication_seconds ? c.avg_communication_seconds.toFixed(4)+' s' : '&mdash;'}</td>
         <td>${c.avg_total_task_seconds ? c.avg_total_task_seconds.toFixed(4)+' s' : '&mdash;'}</td>
         <td>${(c.reliability*100).toFixed(0)}%</td>
-        <td>${c.power}</td>
         <td>${c.dynamic_power ?? '&mdash;'}</td>
+        <td>${c.total_compute_seconds.toFixed(1)} s</td>
         <td>${c.speed_score ? c.speed_score.toFixed(2) : '&mdash;'}</td>
       </tr>`;
     }).join('');
@@ -315,5 +317,18 @@ btnStart.addEventListener('click', async () => {
 setInterval(tick, 1000); tick();
 window.addEventListener('resize', drawChart);
 </script>
+
+<footer style="
+margin-top:30px;
+padding:15px;
+text-align:center;
+font-size:13px;
+color:#888;
+border-top:1px solid #333;">
+    <strong>VolunteerRL Framework</strong><br>
+    Developed by <strong>Tankeu Frederick</strong><br>
+    Department of ICT, University of Ebolowa<br>
+    Department of Physics, University of Yaoundé I
+</footer>
 </body>
 </html>

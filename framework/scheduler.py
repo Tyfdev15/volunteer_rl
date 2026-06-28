@@ -1,4 +1,20 @@
 """
+VolunteerRL Framework
+----------------------------------------------
+
+Distributed Reinforcement Learning
+for Medical Diagnosis using Volunteer Computing
+
+Developed by:
+Tankeu Frederick
+
+Department of ICT (University of Ebolowa)
+Department of Physics (University of Yaoundé I)
+
+2026
+"""
+
+"""
 Ordonnanceur facon BOINC
 ========================
 Distribue les sous-taches aux volontaires et assure la robustesse :
@@ -199,6 +215,7 @@ class Scheduler:
             inflight_count = len(self.inflight)
             done_count = self.done
 
+            total_completed_tasks = sum(c.completed for c in self.clients.values())
             total_compute_seconds = sum(c.total_compute_seconds for c in self.clients.values())
             total_request_seconds = sum(c.total_request_seconds for c in self.clients.values())
             total_report_seconds = sum(c.total_report_seconds for c in self.clients.values())
@@ -217,6 +234,8 @@ class Scheduler:
                 "total_report_seconds": round(total_report_seconds, 3),
                 "total_communication_seconds": round(total_communication_seconds, 3),
                 "active_workers": len(self.clients),
+                "total_completed_tasks": total_completed_tasks,
+                "avg_communication_per_task": round(total_communication_seconds / total_completed_tasks, 4) if total_completed_tasks else 0,
                 "clients": {
                     cid: {
                         "info": c.info,

@@ -1,4 +1,20 @@
 """
+VolunteerRL Framework
+----------------------------------------------
+
+Distributed Reinforcement Learning
+for Medical Diagnosis using Volunteer Computing
+
+Developed by:
+Tankeu Frederick
+
+Department of ICT (University of Ebolowa)
+Department of Physics (University of Yaoundé I)
+
+2026
+"""
+
+"""
 Job : apprentissage par renforcement pour le diagnostic de maladies
 ===================================================================
 Implemente l'interface `TrainingJob` du framework. C'est le "plugin" branche sur
