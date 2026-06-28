@@ -55,6 +55,16 @@ class Coordinator:
         self._epoch_local_acc = []
         self._epoch_local_turns = []
         self.events = []
+    
+    def start_timer(self):
+        """
+        Démarre le chronomètre et lance la première époque
+        au moment où l'utilisateur clique sur DÉMARRER.
+        """
+        if self.start_time is None:
+            self.start_time = time.time()
+            self.end_time = None
+            self._begin_epoch(1)
 
     def add_event(self, event_type, message):
         """
@@ -71,8 +81,10 @@ class Coordinator:
 
     # ----- demarrage ----- #
     def start(self):
-        self.start_time = time.time()
-        self._begin_epoch(1)
+        self.start_time = None
+        self.end_time = None
+        self.finished = False
+   
 
     def _begin_epoch(self, e):
         self.epoch = e
@@ -162,7 +174,7 @@ class Coordinator:
             "top3": metrics.get("top3"),
             "macro_f1": metrics.get("macro_f1"),
             "avg_turns": metrics.get("avg_turns"),
-            "elapsed": time.time() - self.start_time,
+            "elapsed": (time.time() - self.start_time) if self.start_time else 0,
             "epoch_time": time.time() - self.epoch_start,
             "version": version,
             "reassigned": self.sched.stats()["reassigned"],

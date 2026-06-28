@@ -1,4 +1,20 @@
 """
+VolunteerRL Framework
+----------------------------------------------
+
+Distributed Reinforcement Learning
+for Medical Diagnosis using Volunteer Computing
+
+Developed by:
+Tankeu Frederick
+
+Department of ICT (University of Ebolowa)
+Department of Physics (University of Yaoundé I)
+
+2026
+"""
+
+"""
 Serveur HTTP de coordination (Flask)
 ====================================
 Expose l'API REST utilisee par les volontaires et sert le tableau de bord
@@ -102,6 +118,10 @@ def create_app(job, cfg):
     def start_training():
         global TRAINING_STARTED
         TRAINING_STARTED = True
+
+        # Le chronomètre démarre exactement quand tu cliques sur DÉMARRER
+        coord.start_timer()
+
         return jsonify({"started": True})
 
     @app.get("/training_status")
