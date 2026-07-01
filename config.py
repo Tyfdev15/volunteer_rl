@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 @dataclass
 class DataConfig:
     csv_file: str = "data/MedlinePlus20.csv"  # base de reference (20 maladies, 110 symptomes)
-    patients_per_disease: int = 120           # patients synthetiques generes par maladie
+    patients_per_disease: int = 200           # patients synthetiques generes par maladie
     train_fraction: float = 0.85              # part train / test
     seed: int = 42
 
@@ -65,9 +65,9 @@ class TransportConfig:
 # --------------------------------------------------------------------------- #
 @dataclass
 class TrainConfig:
-    episodes_per_task: int = 1000     # episodes collectes par sous-tache -> un lot de gradient ini48 900
-    n_tasks_per_epoch: int = 100     # sous-taches (= pas de gradient) par epoque ini24 60
-    max_epochs: int = 50            #ini40
+    episodes_per_task: int = 1200     # episodes collectes par sous-tache -> un lot de gradient ini48 900
+    n_tasks_per_epoch: int = 200     # sous-taches (= pas de gradient) par epoque ini24 60
+    max_epochs: int = 60            #ini40
     target_accuracy: float = 0.985   # critere d'arret (convergence) ini 0.9
     completion_fraction: float = 0.85   # une epoque se finalise des 85% des taches rendues ini 0.85
     task_timeout: float = 300.0           # s avant reattribution (tolerance aux pannes) ini 8.0
